@@ -1,433 +1,977 @@
+```html
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RK-ARCHIVE // SYSTEM ROOT</title>
-    
-    <!-- QRCode.js Library untuk generate Real Scannable QR Code -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <title>RK-ARCHIVE // SYSTEM SESSION: UNKNOWN</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Monospace -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=VT323&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        termBg: '#090b0d',
+                        termPanel: '#111418',
+                        termBorder: '#232931',
+                        termText: '#c5c8c6',
+                        termMuted: '#626875',
+                        termGreen: '#39c5bb',
+                        termGreenDim: '#1f6661',
+                        termRed: '#e05f65',
+                        termAmber: '#e5c07b',
+                        termBlue: '#61afef'
+                    },
+                    fontFamily: {
+                        mono: ['"Fira Code"', 'monospace'],
+                        vt: ['"VT323"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
-        :root {
-            --bg-color: #0a0c10;
-            --panel-bg: #11141a;
-            --text-color: #d1d5db;
-            --text-dim: #6b7280;
-            --accent-green: #00ff66;
-            --accent-green-dim: #008837;
-            --accent-red: #ff3333;
-            --border-color: #272f3d;
-            --font-mono: 'Courier New', Courier, monospace;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        /* Custom Terminal Aesthetic & Scanline FX */
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: var(--font-mono);
-            font-size: 14px;
-            line-height: 1.5;
-            padding: 20px;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background-color: #090b0d;
+            color: #c5c8c6;
+            font-family: 'Fira Code', monospace;
+            overflow-x: hidden;
         }
 
-        .crt-overlay {
+        /* Scanline Overlay */
+        .scanlines {
+            position: relative;
+        }
+        .scanlines::before {
+            content: " ";
+            display: block;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-            background-size: 100% 4px;
-            z-index: 99;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 40;
+            background-size: 100% 3px, 6px 100%;
             pointer-events: none;
             opacity: 0.6;
         }
 
-        .terminal-container {
-            width: 100%;
-            max-width: 1000px;
-            background-color: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 20px rgba(0, 255, 102, 0.05);
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1px;
-            background-color: var(--border-color);
+        /* Glitch Effect */
+        @keyframes glitch-anim {
+            0% { clip: rect(42px, 9999px, 44px, 0); transform: skew(0.3deg); }
+            5% { clip: rect(12px, 9999px, 59px, 0); transform: skew(0.8deg); }
+            10% { clip: rect(85px, 9999px, 100px, 0); transform: skew(0.1deg); }
+            15% { clip: rect(0, 9999px, 0, 0); transform: skew(0deg); }
+            100% { clip: rect(0, 9999px, 0, 0); transform: skew(0deg); }
         }
-
-        .panel {
-            background-color: var(--panel-bg);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            border-bottom: 1px dashed var(--border-color);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .title {
-            color: var(--accent-green);
-            font-weight: bold;
-        }
-
-        .status-badge {
-            color: var(--accent-red);
-            font-size: 12px;
-        }
-
-        .file-tree {
-            list-style: none;
-            flex-grow: 1;
-        }
-
-        .file-item {
-            margin-bottom: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            padding: 2px 4px;
-            user-select: none;
-        }
-
-        .file-item:hover {
-            background-color: rgba(0, 255, 102, 0.1);
-            color: var(--accent-green);
-        }
-
-        .file-icon {
-            margin-right: 8px;
-            color: var(--text-dim);
-        }
-
-        .file-item:hover .file-icon {
-            color: var(--accent-green);
-        }
-
-        .unknown-item {
-            color: var(--accent-red);
-            animation: pulse 2s infinite;
-        }
-
-        .reader-panel {
-            grid-column: span 2;
-            border-top: 1px solid var(--border-color);
-            display: none;
-            background-color: #0d0f14;
-        }
-
-        .metadata {
-            background: #050608;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 15px;
-            font-size: 12px;
-        }
-
-        .meta-row {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .meta-key { color: var(--text-dim); }
-        .meta-val { color: var(--accent-green); }
-
-        .content-area {
-            white-space: pre-wrap;
-            margin-bottom: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .btn {
-            background: transparent;
-            border: 1px solid var(--accent-green);
-            color: var(--accent-green);
-            padding: 8px 16px;
-            font-family: var(--font-mono);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            background: var(--accent-green);
-            color: var(--bg-color);
-        }
-
-        .qr-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-top: 1px dashed var(--border-color);
-            padding-top: 15px;
-            margin-top: 15px;
-        }
-
-        /* Container untuk Real QR Code */
-        #qrcode {
-            padding: 10px;
-            background: #ffffff;
-            border: 2px solid var(--accent-green);
+        .glitch-text {
             display: inline-block;
+            position: relative;
+        }
+        .glitch-text::before {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: -2px;
+            text-shadow: -1px 0 #e05f65;
+            color: #c5c8c6;
+            background: #090b0d;
+            overflow: hidden;
+            clip: rect(0, 900px, 0, 0);
+            animation: glitch-anim 3s infinite linear alternate-reverse;
         }
 
-        #qrcode img {
-            display: block;
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090b0d;
+            border-left: 1px solid #232931;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #232931;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #39c5bb;
         }
 
-        .cli-input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--accent-green);
-            font-family: var(--font-mono);
-            padding: 5px;
-            margin-top: 10px;
-            outline: none;
+        /* Cursor Blinking */
+        .cursor-blink {
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
         }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
+        .border-ascii {
+            border: 1px solid #232931;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
 
-        @media (max-width: 768px) {
-            .terminal-container {
-                grid-template-columns: 1fr;
-            }
-            .reader-panel {
-                grid-column: span 1;
-            }
+        /* Matrix corrupted text highlight */
+        .corrupted {
+            background: rgba(224, 95, 101, 0.15);
+            color: #e05f65;
+            border-bottom: 1px dashed #e05f65;
         }
     </style>
 </head>
-<body>
-    <div class="crt-overlay"></div>
+<body class="min-h-screen scanlines flex flex-col justify-between text-xs sm:text-sm p-2 sm:p-4 select-none">
 
-    <div class="terminal-container">
-        <!-- Panel Navigasi / Root Directory -->
-        <div class="panel">
-            <div class="header">
-                <span class="title">RK ARCHIVE SYSTEM v0.9b</span>
-                <span class="status-badge">[STATUS: UNSTABLE]</span>
-            </div>
-
-            <div style="margin-bottom: 10px; color: var(--text-dim);">ROOT DIRECTORY /</div>
-            
-            <ul class="file-tree">
-                <li class="file-item" onclick="openFile('rk-000')">
-                    <span class="file-icon">[DIR]</span> archive/rk-000 (Prolog)
-                </li>
-                <li class="file-item" onclick="openFile('rk-001')">
-                    <span class="file-icon">[DIR]</span> archive/rk-001 (Indikator Utama)
-                </li>
-                <li class="file-item" onclick="openFile('access-log')">
-                    <span class="file-icon">[LOG]</span> system/access-log.json
-                </li>
-                <li class="file-item" onclick="openFile('restricted')">
-                    <span class="file-icon">[LOK]</span> restricted/
-                </li>
-                <li class="file-item unknown-item" onclick="openFile('unknown')">
-                    <span class="file-icon">[???]</span> [UNKNOWN_OBJECT]
-                </li>
-            </ul>
-
-            <input type="text" class="cli-input" placeholder="Ketik perintah (help, ls, cat, clear)..." id="cliInput" onkeydown="handleCLI(event)">
+    <!-- Top System Header Status Bar -->
+    <header class="w-full border-ascii bg-termPanel p-2 sm:p-3 mb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 rounded">
+        <div class="flex items-center space-x-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-termGreen animate-pulse"></span>
+            <span class="font-bold text-termGreen tracking-wider text-sm sm:text-base">RK ARCHIVE SYSTEM</span>
+            <span class="text-termMuted">// SESSION:</span>
+            <span id="session-id" class="text-termAmber font-mono">UNKNOWN_USR_8829</span>
         </div>
+        
+        <div class="flex flex-wrap items-center gap-3 text-xs text-termMuted font-mono">
+            <div>SYS_TIME: <span id="sys-clock" class="text-termText">00:00:00</span></div>
+            <div>STATUS: <span class="text-termGreen font-bold">ONLINE</span></div>
+            <!-- CRT Toggle -->
+            <button id="toggle-crt" class="px-2 py-0.5 border border-termBorder hover:border-termGreen text-termText hover:text-termGreen rounded transition">
+                <i class="fa-solid fa-tv mr-1"></i>CRT FX: <span id="crt-status">ON</span>
+            </button>
+            <!-- Share/QR Utility Trigger -->
+            <button onclick="openModal('share-modal')" class="px-2 py-0.5 border border-termBorder hover:border-termBlue text-termBlue hover:bg-termBlue/10 rounded transition">
+                <i class="fa-solid fa-qrcode mr-1"></i>QR DEEPLINK
+            </button>
+        </div>
+    </header>
 
-        <!-- Panel Info Sistem & Real QR Code Generator -->
-        <div class="panel">
-            <div class="header">
-                <span class="title">SYSTEM MON</span>
-            </div>
-            
-            <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 10px;">
-                SESSION: UNKNOWN_USER<br>
-                SOURCE: UNKNOWN<br>
-                RECOVERY RATE: 23.4%
-            </div>
+    <!-- Main Container -->
+    <main class="w-full flex-grow grid grid-cols-1 lg:grid-cols-12 gap-3 mb-3">
 
-            <div class="qr-section">
-                <div style="font-size: 10px; color: var(--accent-green); margin-bottom: 8px;">DEEP-LINK QR GENERATOR</div>
-                
-                <!-- Elemen tempat QR Code Asli di-render -->
-                <div id="qrcode"></div>
-                
-                <div style="font-size: 9px; color: var(--text-dim); margin-top: 8px; text-align: center;">
-                    SCAN DENGAN PONSEL UNTUK AKSES LANGSUNG VIA GITHUB PAGES
+        <!-- Left Column: Directory Tree & Breadcrumbs (5 cols) -->
+        <section class="lg:col-span-5 border-ascii bg-termPanel p-3 flex flex-col rounded">
+            <!-- Navigation Header -->
+            <div class="flex justify-between items-center pb-2 mb-2 border-b border-termBorder">
+                <div class="flex items-center space-x-1 text-termMuted text-xs overflow-x-auto" id="breadcrumbs">
+                    <button onclick="navigateTo('/')" class="hover:text-termGreen font-bold"><i class="fa-solid fa-terminal mr-1"></i>root</button>
+                    <span id="path-display" class="text-termText font-mono">/</span>
+                </div>
+                <div class="text-xs text-termMuted">
+                    <span id="file-count">7 items</span>
                 </div>
             </div>
-        </div>
 
-        <!-- Panel Reader Dokumen -->
-        <div class="panel reader-panel" id="readerPanel">
-            <div class="header">
-                <span class="title" id="docTitle">BERKAS</span>
-                <button class="btn" style="padding: 2px 8px; font-size: 10px;" onclick="closeReader()">[X] TUTUP</button>
+            <!-- Directory Items List -->
+            <div id="file-explorer-list" class="flex-grow space-y-1 font-mono overflow-y-auto max-h-[450px] lg:max-h-[600px] pr-1">
+                <!-- Dynamic Content Rendered Here -->
             </div>
 
-            <div class="metadata" id="docMeta"></div>
-            <div class="content-area" id="docContent"></div>
-            <div id="actionArea"></div>
+            <!-- Terminal Command Line Mini-Input -->
+            <div class="mt-3 pt-2 border-t border-termBorder flex items-center space-x-2 text-xs">
+                <span class="text-termGreen font-bold">$</span>
+                <input type="text" id="cli-input" placeholder="type 'help', 'ls', 'cat rk-000'..." 
+                       class="w-full bg-transparent border-none text-termText focus:outline-none font-mono placeholder:text-termMuted/50">
+            </div>
+        </section>
+
+        <!-- Right Column: Document Viewer Panel (7 cols) -->
+        <section class="lg:col-span-7 border-ascii bg-termPanel p-3 sm:p-4 flex flex-col rounded min-h-[400px] relative">
+            
+            <!-- Document Header Metadata -->
+            <div id="doc-header" class="border-b border-termBorder pb-3 mb-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 id="doc-title" class="text-base sm:text-lg font-bold text-termText tracking-wide flex items-center gap-2">
+                            <i class="fa-solid fa-folder-open text-termAmber"></i> ROOT DIRECTORY
+                        </h2>
+                        <div id="doc-subtitle" class="text-xs text-termMuted mt-1">Select an object or log from the archive index.</div>
+                    </div>
+                    <span id="doc-badge" class="px-2 py-0.5 text-xs border border-termGreen text-termGreen rounded">INDEX</span>
+                </div>
+            </div>
+
+            <!-- Active Document View Content Area -->
+            <div id="doc-content" class="flex-grow font-mono text-xs sm:text-sm text-termText space-y-4 overflow-y-auto max-h-[500px] pr-2">
+                <!-- Dynamic Content populated via JavaScript -->
+            </div>
+
+            <!-- Action Controls Bar at Bottom of Viewer -->
+            <div id="doc-footer" class="mt-4 pt-3 border-t border-termBorder flex flex-wrap justify-between items-center text-xs text-termMuted">
+                <div id="footer-info"><i class="fa-solid fa-circle-info mr-1"></i>SYSTEM READY</div>
+                <div class="flex items-center space-x-2" id="footer-actions">
+                    <!-- Dynamic Action Buttons -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom System Status Box (Concept requirement) -->
+    <footer class="w-full border-ascii bg-termPanel p-3 rounded font-mono text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-termMuted">
+            <div class="border-b md:border-b-0 md:border-r border-termBorder pb-1 md:pb-0 pr-2">
+                <span class="text-termAmber">SYSTEM STATUS:</span> PARTIALLY RECOVERED
+            </div>
+            <div class="border-b md:border-b-0 md:border-r border-termBorder pb-1 md:pb-0 pr-2">
+                <span class="text-termAmber">SOURCE:</span> NOT FOUND
+            </div>
+            <div>
+                <span class="text-termAmber">NOTICE:</span> SOME FILES MAY NOT HAVE AN ORIGINAL SOURCE.
+            </div>
+        </div>
+    </footer>
+
+    <!-- QR & DeepLink Modal -->
+    <div id="share-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="border-ascii bg-termPanel w-full max-w-md p-4 rounded shadow-2xl space-y-4 relative">
+            <div class="flex justify-between items-center border-b border-termBorder pb-2">
+                <h3 class="text-termBlue font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-qrcode"></i> DEEPLINK & PROMO GENERATOR
+                </h3>
+                <button onclick="closeModal('share-modal')" class="text-termMuted hover:text-termRed"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+            <p class="text-xs text-termMuted">
+                Gunakan alat ini untuk membuat tautan langsung (deep link) promosi ke Threads, Instagram, atau cetak QR Code.
+            </p>
+            
+            <div class="space-y-2 text-xs">
+                <label class="block text-termAmber">Pilih Target Berkas/Halaman:</label>
+                <select id="deeplink-select" onchange="updateDeepLink()" class="w-full bg-termBg border border-termBorder text-termText p-2 rounded focus:outline-none focus:border-termBlue">
+                    <option value="/">[ / ] Root Directory System</option>
+                    <option value="/archive/rk-000">[ /archive/rk-000 ] Prolog: Berkas Tanpa Nama</option>
+                    <option value="/archive/rk-001">[ /archive/rk-001 ] Episode 1: Indikator Kinerja Utama</option>
+                    <option value="/system/access-log">[ /system/access-log ] System Access Paradox Logs</option>
+                    <option value="/UNKNOWN_OBJECT">[ UNKNOWN_OBJECT ] Classified Anomaly</option>
+                </select>
+
+                <label class="block text-termAmber mt-3">URL Langsung:</label>
+                <div class="flex gap-2">
+                    <input type="text" id="deeplink-url" readonly class="w-full bg-termBg border border-termBorder text-termGreen p-2 rounded focus:outline-none font-mono text-xs">
+                    <button onclick="copyDeepLink()" class="px-3 bg-termBlue/20 text-termBlue border border-termBlue hover:bg-termBlue/30 rounded font-bold transition">
+                        COPY
+                    </button>
+                </div>
+                <div id="copy-toast" class="text-termGreen text-[11px] hidden"><i class="fa-solid fa-check mr-1"></i> Link tersalin ke clipboard!</div>
+            </div>
+
+            <!-- Generated QR Code Placeholder -->
+            <div class="flex flex-col items-center justify-center p-3 bg-termBg border border-termBorder rounded space-y-2">
+                <div id="qr-code-box" class="p-2 bg-white rounded">
+                    <!-- Rendered via JS -->
+                </div>
+                <span class="text-[10px] text-termMuted font-mono">Pindai untuk membuka langsung di HP</span>
+            </div>
+
+            <div class="pt-2 text-right">
+                <button onclick="closeModal('share-modal')" class="px-4 py-1 border border-termBorder text-termText hover:bg-termBorder rounded text-xs">
+                    Tutup
+                </button>
+            </div>
         </div>
     </div>
 
+    <!-- JavaScript Logic -->
     <script>
-        // Data Dokumen
-        const archiveData = {
-            'rk-000': {
-                title: 'RK-000 // BERKAS TANPA NAMA',
-                meta: {
-                    'NAMA BERKAS': 'TIDAK DIKETAHUI',
-                    'STATUS': 'TIDAK TERCATAT',
-                    'SUMBER': 'TIDAK DITEMUKAN',
-                    'UKURAN': '0 BYTE'
-                },
-                content: "BERKAS BERHASIL DIHUBUNGKAN.\nTeks terenkripsi. Diperlukan tindakan pemulihan (recovery) untuk menampilkan konten naskah...",
-                hasAction: true,
-                actionLabel: '[ ATTEMPT RECOVERY ]',
-                recoveredText: "PROLOG: RATAP KROMIUM\n------------------------------------\nLog awal tidak mencatat jam berapa entitas ini masuk.\nLogam itu tidak cair, juga tidak padat. Ia merembas melalui saluran sinyal suara yang mati..."
+        /* ==========================================================================
+           ARCHIVE DATA STRUCTURE & FILE SYSTEM
+           ========================================================================== */
+        const FILE_SYSTEM = {
+            "/": {
+                type: "directory",
+                items: [
+                    { name: "archive/", type: "folder", path: "/archive", desc: "Kumpulan Dokumen & Berkas Rekonstruksi" },
+                    { name: "system/", type: "folder", path: "/system", desc: "Log Aktivitas & Status Sistem Server" },
+                    { name: "fragments/", type: "folder", path: "/fragments", desc: "Potongan Teks Belum Terhubung" },
+                    { name: "restricted/", type: "folder", path: "/restricted", desc: "Halaman Akses Terbatas & Anonim" },
+                    { name: "README.md", type: "file", path: "/README.md", icon: "fa-regular fa-file-code", size: "1.2 KB" },
+                    { name: "access-log.json", type: "file", path: "/system/access-log", icon: "fa-regular fa-file-lines", size: "4.8 KB" },
+                    { name: "[UNKNOWN_OBJECT]", type: "anomaly", path: "/UNKNOWN_OBJECT", icon: "fa-solid fa-triangle-exclamation", size: "0 BYTE", color: "text-termRed" }
+                ]
             },
-            'rk-001': {
-                title: 'RK-001 // INDIKATOR KINERJA UTAMA',
-                meta: {
-                    'STATUS PEGAWAI': 'AKTIF',
-                    'STATUS IDENTITAS': 'VALID',
-                    'STATUS KEBERADAAN': 'TIDAK TERDETEKSI'
-                },
-                content: "LAPORAN ADMINISTRASI OPERASIONAL:\n\nSubjek masih mencatatkan presensi harian pada pukul 08:00 WIB.\nNamun pemeriksaan fisik pada kubikel menunjukkan ruang kosong sejak 14 hari lalu.\nLaporan terus tergenerasi secara otomatis tanpa pergerakan kursor.",
-                hasAction: false
+            "/archive": {
+                type: "directory",
+                items: [
+                    { name: "..", type: "parent", path: "/" },
+                    { name: "rk-000/", type: "folder", path: "/archive/rk-000", desc: "Prolog: Berkas Tanpa Nama" },
+                    { name: "rk-001/", type: "folder", path: "/archive/rk-001", desc: "Episode 1: Indikator Kinerja Utama" },
+                    { name: "rk-002/", type: "folder", path: "/archive/rk-002", desc: "Episode 2: Temuan Hasil Pemulihan [LOCKED]", locked: true }
+                ]
             },
-            'access-log': {
-                title: 'SYSTEM // ACCESS LOG',
-                meta: { 'SYSTEM': 'RK-ARCHIVE', 'LOG_TYPE': 'AUDIT_TRAIL' },
-                content: "{\n  \"logs\": [\n    { \"time\": \"03:17:09\", \"event\": \"ARCHIVE_OPENED\", \"source\": \"UNKNOWN\" },\n    { \"time\": \"03:17:10\", \"event\": \"FILE_NOT_FOUND\", \"file\": \"RK-000\" },\n    { \"time\": \"03:17:10\", \"event\": \"FILE_OPENED\", \"file\": \"RK-000\" }\n  ]\n}",
-                hasAction: false
+            "/system": {
+                type: "directory",
+                items: [
+                    { name: "..", type: "parent", path: "/" },
+                    { name: "access-log.json", type: "file", path: "/system/access-log", icon: "fa-regular fa-file-lines", size: "4.8 KB" },
+                    { name: "status.json", type: "file", path: "/system/status", icon: "fa-solid fa-gear", size: "0.8 KB" }
+                ]
             },
-            'restricted': {
-                title: 'RESTRICTED // DIRECTORY',
-                meta: { 'SECURITY_LEVEL': 'RED', 'ACCESS': 'DENIED' },
-                content: "AKSES DITOLAK.\n\nAnda tidak memiliki otorisasi untuk membuka direktori ini.\nLog aktivitas Anda telah dicatat.",
-                hasAction: false
+            "/fragments": {
+                type: "directory",
+                items: [
+                    { name: "..", type: "parent", path: "/" },
+                    { name: "fragment-001.txt", type: "file", path: "/fragments/001", icon: "fa-regular fa-file-lines", size: "312 B" },
+                    { name: "fragment-002.txt", type: "file", path: "/fragments/002", icon: "fa-regular fa-file-lines", size: "189 B" }
+                ]
             },
-            'unknown': {
-                title: 'ANOMALY // UNKNOWN OBJECT',
-                meta: { 'CLASSIFICATION': 'NONE', 'ORIGIN': 'OUT_OF_BOUNDS' },
-                content: "OBJEK TIDAK DAPAT DIKLASIFIKASIKAN.\nBerkas ditemukan. Direktori asal tidak ditemukan.",
-                hasAction: false
+            "/restricted": {
+                type: "directory",
+                items: [
+                    { name: "..", type: "parent", path: "/" },
+                    { name: "LAYER_3_ANOMALY.DAT", type: "file", path: "/restricted/layer3", icon: "fa-solid fa-lock", size: "??? KB", color: "text-termRed" }
+                ]
             }
         };
 
-        let qrCodeInstance = null;
+        // State variables
+        let currentPath = "/";
+        let isRecoveredRK000 = false;
+        let audioCtx = null;
 
-        // Inisialisasi Real Scannable QR Code
-        function updateQRCode(targetHash) {
-            const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = ''; // Clear QR lama
+        /* ==========================================================================
+           AUDIO SYNTHESIZER (No external audio files needed)
+           ========================================================================== */
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
 
-            // Menentukan URL Target (Otomatis menyesuaikan dengan domain GitHub Pages tempat file berada)
-            const targetURL = window.location.origin + window.location.pathname + targetHash;
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
 
-            qrCodeInstance = new QRCode(qrContainer, {
-                text: targetURL,
-                width: 110,
-                height: 110,
-                colorDark : "#0a0c10",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.05);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.05);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(100, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'recover') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(900, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                }
+            } catch(e) {
+                // Silently ignore audio block
+            }
+        }
+
+        /* ==========================================================================
+           NAVIGATION & RENDERING CORE
+           ========================================================================== */
+        function initSystem() {
+            // Update Clock
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('sys-clock').innerText = now.toTimeString().split(' ')[0];
+            }, 1000);
+
+            // Handle URL Query Params for Direct Links (e.g., ?file=/archive/rk-000)
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetFile = urlParams.get('file');
+
+            if (targetFile) {
+                navigateTo(targetFile);
+            } else {
+                navigateTo('/');
+            }
+
+            // CLI Input Listener
+            document.getElementById('cli-input').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    handleCLICommand(this.value.trim());
+                    this.value = '';
+                }
+            });
+
+            // Toggle CRT scanline
+            document.getElementById('toggle-crt').addEventListener('click', () => {
+                document.body.classList.toggle('scanlines');
+                const crtStatus = document.getElementById('crt-status');
+                crtStatus.innerText = document.body.classList.contains('scanlines') ? 'ON' : 'OFF';
+            });
+
+            // Generate initial Deeplink
+            updateDeepLink();
+        }
+
+        function navigateTo(path) {
+            playSound('click');
+            
+            if (FILE_SYSTEM[path]) {
+                // It's a directory
+                currentPath = path;
+                renderDirectoryExplorer(path);
+                renderDirectoryOverview(path);
+            } else {
+                // It's a specific file view
+                renderFileContent(path);
+            }
+            
+            updateBreadcrumbs(path);
+        }
+
+        function updateBreadcrumbs(path) {
+            const display = document.getElementById('path-display');
+            display.innerText = path;
+        }
+
+        /* Render File List in Left Panel */
+        function renderDirectoryExplorer(dirPath) {
+            const dir = FILE_SYSTEM[dirPath];
+            const explorerList = document.getElementById('file-explorer-list');
+            explorerList.innerHTML = '';
+
+            if (!dir || !dir.items) return;
+
+            document.getElementById('file-count').innerText = `${dir.items.length} items`;
+
+            dir.items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-2 rounded hover:bg-termBorder/50 cursor-pointer transition group border border-transparent hover:border-termBorder";
+                
+                let iconClass = "fa-folder text-termAmber";
+                let textClass = "text-termText";
+
+                if (item.type === 'file') {
+                    iconClass = `${item.icon || 'fa-file'} text-termBlue`;
+                } else if (item.type === 'anomaly') {
+                    iconClass = `${item.icon} ${item.color}`;
+                    textClass = `${item.color} font-bold glitch-text`;
+                } else if (item.type === 'parent') {
+                    iconClass = "fa-arrow-up text-termMuted";
+                    textClass = "text-termMuted";
+                }
+
+                if (item.locked) {
+                    textClass = "text-termMuted opacity-60";
+                    iconClass = "fa-lock text-termMuted";
+                }
+
+                row.onclick = () => {
+                    if (item.locked) {
+                        playSound('error');
+                        alertModal('AKSES DITOLAK: Berkas dalam direktori ini terkunci oleh protokol keamanan sistem.');
+                        return;
+                    }
+                    navigateTo(item.path);
+                };
+
+                row.innerHTML = `
+                    <div class="flex items-center space-x-2.5 truncate">
+                        <i class="fa-solid ${iconClass} w-4 text-center"></i>
+                        <span class="${textClass} font-mono">${item.name}</span>
+                    </div>
+                    <span class="text-[11px] text-termMuted font-mono group-hover:text-termText">${item.size || ''}</span>
+                `;
+                explorerList.appendChild(row);
             });
         }
 
-        // Buka Berkas
-        function openFile(key) {
-            const doc = archiveData[key];
-            if (!doc) return;
+        /* Render Document Header & Main Panel */
+        function renderDirectoryOverview(dirPath) {
+            const titleEl = document.getElementById('doc-title');
+            const subTitleEl = document.getElementById('doc-subtitle');
+            const badgeEl = document.getElementById('doc-badge');
+            const contentEl = document.getElementById('doc-content');
+            const footerInfo = document.getElementById('footer-info');
+            const footerActions = document.getElementById('footer-actions');
 
-            document.getElementById('readerPanel').style.display = 'block';
-            document.getElementById('docTitle').innerText = doc.title;
-            
-            // Render Meta
-            let metaHTML = '';
-            for (let [k, v] of Object.entries(doc.meta)) {
-                metaHTML += `<div class="meta-row"><span class="meta-key">${k}</span><span class="meta-val">${v}</span></div>`;
-            }
-            document.getElementById('docMeta').innerHTML = metaHTML;
+            badgeEl.innerText = "DIRECTORY";
+            badgeEl.className = "px-2 py-0.5 text-xs border border-termAmber text-termAmber rounded";
 
-            // Render Content
-            document.getElementById('docContent').innerText = doc.content;
+            titleEl.innerHTML = `<i class="fa-solid fa-folder-open text-termAmber"></i> DIRECTORY: ${dirPath}`;
+            subTitleEl.innerText = "System Archive Index Structure";
 
-            // Render Action
-            const actionArea = document.getElementById('actionArea');
-            actionArea.innerHTML = '';
-            if (doc.hasAction) {
-                const btn = document.createElement('button');
-                btn.className = 'btn';
-                btn.innerText = doc.actionLabel;
-                btn.onclick = () => {
-                    document.getElementById('docContent').innerText = doc.recoveredText;
-                    btn.disabled = true;
-                    btn.innerText = '[ RECOVERY COMPLETED ]';
-                };
-                actionArea.appendChild(btn);
-            }
+            footerInfo.innerHTML = `<i class="fa-solid fa-circle-info mr-1"></i>SELECT A FILE TO INSPECT`;
+            footerActions.innerHTML = ``;
 
-            // Update Hash URL & QR Code
-            const hash = '#' + key;
-            history.pushState(null, null, hash);
-            updateQRCode(hash);
+            contentEl.innerHTML = `
+                <div class="border border-termBorder bg-termBg/50 p-4 rounded space-y-3 font-mono">
+                    <div class="text-termAmber font-bold border-b border-termBorder pb-1">
+                        / SYSTEM ARCHIVE ROOT NAVIGATOR
+                    </div>
+                    <p class="text-termMuted">
+                        Anda berada di dalam struktur direktori <span class="text-termText font-bold">${dirPath}</span>.
+                        Gunakan panel navigasi sebelah kiri untuk menjelajahi dokumen, catatan sistem, dan direktori yang dipulihkan.
+                    </p>
+                    <div class="p-3 bg-termPanel border border-termBorder rounded space-y-1 text-xs">
+                        <div><span class="text-termGreen font-bold">DIRECTORY STATUS:</span> RECONSTRUCTED</div>
+                        <div><span class="text-termGreen font-bold">READ ACCESS:</span> GRANTED (LEVEL 1)</div>
+                        <div><span class="text-termGreen font-bold">ENCRYPTION:</span> NONE DETECTED</div>
+                    </div>
+                </div>
+            `;
         }
 
-        function closeReader() {
-            document.getElementById('readerPanel').style.display = 'none';
-            history.pushState(null, null, ' ');
-            updateQRCode('');
-        }
+        /* ==========================================================================
+           SPECIFIC FILE CONTENT VIEWERS
+           ========================================================================== */
+        function renderFileContent(path) {
+            const titleEl = document.getElementById('doc-title');
+            const subTitleEl = document.getElementById('doc-subtitle');
+            const badgeEl = document.getElementById('doc-badge');
+            const contentEl = document.getElementById('doc-content');
+            const footerInfo = document.getElementById('footer-info');
+            const footerActions = document.getElementById('footer-actions');
 
-        // Handle CLI Input
-        function handleCLI(e) {
-            if (e.key === 'Enter') {
-                const cmd = e.target.value.trim().toLowerCase();
-                e.target.value = '';
+            footerActions.innerHTML = '';
 
-                if (cmd === 'help') {
-                    alert('Perintah tersedia:\n- ls : Lihat daftar berkas\n- cat [nama] : Buka berkas (contoh: cat rk-000)\n- clear : Tutup pembaca');
-                } else if (cmd === 'ls') {
-                    alert('archive/rk-000\narchive/rk-001\nsystem/access-log.json\nrestricted/\n[UNKNOWN_OBJECT]');
-                } else if (cmd.startsWith('cat ')) {
-                    const target = cmd.replace('cat ', '').trim();
-                    if (archiveData[target]) openFile(target);
-                    else alert('Berkas tidak ditemukan: ' + target);
-                } else if (cmd === 'clear') {
-                    closeReader();
-                } else {
-                    alert('Perintah tidak dikenali. Ketik "help" untuk bantuan.');
-                }
+            // 1. UNKNOWN_OBJECT
+            if (path === '/UNKNOWN_OBJECT') {
+                playSound('error');
+                badgeEl.innerText = "ANOMALY";
+                badgeEl.className = "px-2 py-0.5 text-xs border border-termRed text-termRed rounded animate-pulse";
+
+                titleEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-termRed"></i> [UNKNOWN_OBJECT]`;
+                subTitleEl.innerText = "UNCLASSIFIED ARCHIVE ENTITY";
+
+                contentEl.innerHTML = `
+                    <div class="border border-termRed/50 bg-termRed/5 p-4 rounded space-y-4 font-mono">
+                        <div class="flex items-center space-x-2 text-termRed font-bold text-sm border-b border-termRed/30 pb-2">
+                            <i class="fa-solid fa-bug animate-spin"></i>
+                            <span>SYSTEM ERROR: FILE_WITHOUT_DIRECTORY</span>
+                        </div>
+                        
+                        <div class="p-3 bg-termBg border border-termRed/30 text-termRed/90 rounded text-xs leading-relaxed">
+                            <p class="font-bold mb-1">OBJEK TIDAK DAPAT DIKLASIFIKASIKAN.</p>
+                            <p>Berkas ditemukan. Direktori asal tidak ditemukan.</p>
+                            <p class="mt-2 text-termMuted">OBJECT CANNOT BE CLASSIFIED. The file exists. Its directory does not.</p>
+                        </div>
+
+                        <div class="text-xs text-termMuted space-y-1">
+                            <div><span class="text-termAmber">SYS_HASH:</span> <span class="font-mono">0x88F_CORRUPTED_PTR</span></div>
+                            <div><span class="text-termAmber">PHYSICAL_LOCATION:</span> UNMAPPED_SECTOR</div>
+                            <div><span class="text-termAmber">TIMESTAMP:</span> NULL_TIME</div>
+                        </div>
+
+                        <div class="border-t border-termBorder pt-3 text-xs text-termText leading-relaxed">
+                            <p class="italic text-termMuted">
+                                "Ada sesuatu yang mengendap di balik lapisan instruksi sistem. Bukan kode, melainkan sisa-sisa keputusan yang tidak pernah dicatat..."
+                            </p>
+                        </div>
+                    </div>
+                `;
+
+                footerInfo.innerHTML = `<span class="text-termRed"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ERR_ANOMALY_CLASSIFICATION</span>`;
+                return;
             }
+
+            // 2. README.md
+            if (path === '/README.md') {
+                badgeEl.innerText = "DOCUMENT";
+                badgeEl.className = "px-2 py-0.5 text-xs border border-termBlue text-termBlue rounded";
+
+                titleEl.innerHTML = `<i class="fa-regular fa-file-code text-termBlue"></i> README.md`;
+                subTitleEl.innerText = "Archive System Briefing & Overview";
+
+                contentEl.innerHTML = `
+                    <div class="border border-termBorder bg-termBg p-4 rounded space-y-3 font-mono text-xs sm:text-sm">
+                        <h3 class="text-termGreen font-bold border-b border-termBorder pb-1 text-base"># RK-ARCHIVE REPOSITORY</h3>
+                        <p class="text-termText leading-relaxed">
+                            Selamat datang di repositori arsip digital <span class="text-termAmber font-bold">Ratap Kromium</span>.
+                            Sistem ini dirancang untuk merekonstruksi jejak digital, laporan administratif, dan catatan yang bocor dari entitas yang tidak diketahui.
+                        </p>
+                        <div class="p-3 bg-termPanel border border-termBorder rounded space-y-2">
+                            <div class="text-termAmber font-bold">GUIDE / PETUNJUK PENELUSURAN:</div>
+                            <ul class="list-disc list-inside space-y-1 text-termMuted">
+                                /> Periksa folder <span class="text-termText">/archive</span> untuk membaca dokumen kronologis.</li>
+                                /> Buka folder <span class="text-termText">/system</span> untuk melihat log aktivitas dan kontradiksi sistem.</li>
+                                /> Beberapa berkas memerlukan proses pemulihan (<span class="text-termGreen">ATTEMPT RECOVERY</span>).</li>
+                            </ul>
+                        </div>
+                        <p class="text-termMuted italic text-xs">
+                            Peringatan: Seluruh data di situs ini disajikan dalam bentuk rekaan sistem arsip interaktif.
+                        </p>
+                    </div>
+                `;
+                footerInfo.innerHTML = `<i class="fa-solid fa-check text-termGreen mr-1"></i>README LOADED`;
+                return;
+            }
+
+            // 3. archive/rk-000 (Prolog)
+            if (path === '/archive/rk-000') {
+                badgeEl.innerText = "METADATA";
+                badgeEl.className = "px-2 py-0.5 text-xs border border-termAmber text-termAmber rounded";
+
+                titleEl.innerHTML = `<i class="fa-solid fa-file-lines text-termAmber"></i> RK-000: Berkas Tanpa Nama`;
+                subTitleEl.innerText = "Prolog - Primary Recovery File";
+
+                renderRK000Content(contentEl, footerActions);
+                footerInfo.innerHTML = `<i class="fa-solid fa-database mr-1"></i>ARCHIVE ID: RK-000`;
+                return;
+            }
+
+            // 4. archive/rk-001 (Indikator Kinerja Utama)
+            if (path === '/archive/rk-001') {
+                badgeEl.innerText = "EPISODE 1";
+                badgeEl.className = "px-2 py-0.5 text-xs border border-termGreen text-termGreen rounded";
+
+                titleEl.innerHTML = `<i class="fa-solid fa-file-contract text-termGreen"></i> RK-001: Indikator Kinerja Utama`;
+                subTitleEl.innerText = "Administrative HR & Anomaly Report";
+
+                contentEl.innerHTML = `
+                    <div class="border border-termBorder bg-termBg p-4 rounded space-y-4 font-mono">
+                        
+                        <!-- Metadata Table -->
+                        <div class="bg-termPanel p-3 border border-termBorder rounded text-xs space-y-1">
+                            <div class="text-termAmber font-bold border-b border-termBorder pb-1 mb-2">METADATA LAPORAN PEGAWAI</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><span class="text-termMuted">NAMA DOKUMEN:</span> INDIKATOR_KINERJA_UTAMA</div>
+                                <div><span class="text-termMuted">DEPARTEMEN:</span> SHIFT_MALAM_KROMIUM</div>
+                                <div><span class="text-termMuted">STATUS PEGAWAI:</span> <span class="text-termGreen font-bold">AKTIF</span></div>
+                                <div><span class="text-termMuted">STATUS IDENTITAS:</span> <span class="text-termGreen font-bold">VALID</span></div>
+                            </div>
+                            <!-- Administrative Paradox Highlight -->
+                            <div class="mt-2 pt-2 border-t border-termBorder flex justify-between items-center text-termRed font-bold bg-termRed/10 p-1.5 rounded">
+                                <span>STATUS KEBERADAAN:</span>
+                                <span>TIDAK TERDETEKSI</span>
+                            </div>
+                        </div>
+
+                        <!-- Narrative Content -->
+                        <div class="space-y-3 text-termText text-xs sm:text-sm leading-relaxed border-l-2 border-termGreen pl-3 py-1">
+                            <p class="font-bold text-termAmber">
+                                [CATATAN ADMINISTRASI PEGAWAI #809]
+                            </p>
+                            <p>
+                                Sistem pencatat kehadiran mencatat bahwa presensi masuk dilakukan tepat pukul 23:59:00. Kartu akses magnetik telah dipindai di pintu gerbang utama. Komputer kerja di bilik 04 menyala dan memproses lembar kerja hingga pukul 04:00 pagi.
+                            </p>
+                            <p>
+                                Namun, ketika dilakukan pemeriksaan rekaman sensor termal dan kamera visual di seluruh koridor gedung, tidak ada bayangan manusia maupun jejak suhu tubuh di ruangan tersebut.
+                            </p>
+                            <p class="italic text-termMuted">
+                                "Seseorang memproses berkas ini. Indikator kinerja utama terpenuhi 100%. Namun siapa yang duduk di kursi itu?"
+                            </p>
+                        </div>
+
+                    </div>
+                `;
+
+                footerActions.innerHTML = `
+                    <button onclick="navigateTo('/archive/rk-000')" class="px-3 py-1 border border-termBorder text-termMuted hover:text-termText rounded text-xs">
+                        &laquo; Prev: RK-000
+                    </button>
+                    <button onclick="navigateTo('/system/access-log')" class="px-3 py-1 border border-termGreen/50 text-termGreen hover:bg-termGreen/10 rounded text-xs font-bold">
+                        Check Access Log &raquo;
+                    </button>
+                `;
+                footerInfo.innerHTML = `<i class="fa-solid fa-check text-termGreen mr-1"></i>REPORT LOADED`;
+                return;
+            }
+
+            // 5. system/access-log
+            if (path === '/system/access-log') {
+                badgeEl.innerText = "LOGS";
+                badgeEl.className = "px-2 py-0.5 text-xs border border-termAmber text-termAmber rounded";
+
+                titleEl.innerHTML = `<i class="fa-solid fa-receipt text-termAmber"></i> system/access-log.json`;
+                subTitleEl.innerText = "System Audit Trail Paradoxes";
+
+                contentEl.innerHTML = `
+                    <div class="border border-termBorder bg-termBg p-3 rounded space-y-3 font-mono text-xs">
+                        <div class="flex justify-between items-center text-termMuted border-b border-termBorder pb-2">
+                            <span>FORMAT: JSON</span>
+                            <span class="text-termGreen"><i class="fa-solid fa-lock-open mr-1"></i>READ ONLY</span>
+                        </div>
+
+                        <pre class="bg-termPanel p-3 rounded text-termText overflow-x-auto leading-relaxed border border-termBorder font-mono">
+{
+  <span class="text-termAmber">"system"</span>: <span class="text-termGreen">"RK-ARCHIVE"</span>,
+  <span class="text-termAmber">"status"</span>: <span class="text-termGreen">"PARTIALLY_RECOVERED"</span>,
+  <span class="text-termAmber">"logs"</span>: [
+    {
+      <span class="text-termAmber">"time"</span>: <span class="text-termGreen">"03:17:09"</span>,
+      <span class="text-termAmber">"event"</span>: <span class="text-termBlue">"ARCHIVE_OPENED"</span>,
+      <span class="text-termAmber">"source"</span>: <span class="text-termGreen">"UNKNOWN"</span>
+    },
+    {
+      <span class="text-termAmber">"time"</span>: <span class="text-termGreen">"03:17:10"</span>,
+      <span class="text-termAmber">"event"</span>: <span class="text-termRed">"FILE_NOT_FOUND"</span>,
+      <span class="text-termAmber">"file"</span>: <span class="text-termGreen">"RK-000"</span>
+    },
+    {
+      <span class="text-termAmber">"time"</span>: <span class="text-termGreen">"03:17:10"</span>,
+      <span class="text-termAmber">"event"</span>: <span class="text-termGreen">"FILE_OPENED"</span>,
+      <span class="text-termAmber">"file"</span>: <span class="text-termGreen">"RK-000"</span>
+    }
+  ]
+}</pre>
+
+                        <div class="p-3 bg-termAmber/10 border border-termAmber/30 rounded text-termAmber text-xs">
+                            <i class="fa-solid fa-lightbulb mr-1"></i> <strong>SISTEM ANOMALI:</strong>
+                            Perhatikan timestamp pukul <strong>03:17:10</strong>. Sistem mencatat bahwa berkas <code>RK-000</code> tidak ditemukan, namun pada detik yang persis sama, berkas tersebut berhasil dibuka.
+                        </div>
+                    </div>
+                `;
+
+                footerInfo.innerHTML = `<i class="fa-solid fa-terminal mr-1"></i>JSON LOG LOADED`;
+                return;
+            }
+
+            // 6. system/status
+            if (path === '/system/status') {
+                badgeEl.innerText = "SYSTEM";
+                badgeEl.className = "px-2 py-0.5 text-xs border border-termGreen text-termGreen rounded";
+
+                titleEl.innerHTML = `<i class="fa-solid fa-gear text-termGreen"></i> system/status.json`;
+                subTitleEl.innerText = "Core Server Diagnostics";
+
+                contentEl.innerHTML = `
+                    <div class="border border-termBorder bg-termBg p-3 rounded font-mono text-xs space-y-2">
+                        <div class="text-termGreen font-bold">[SERVER HEALTH AUDIT]</div>
+                        <div class="space-y-1 text-termMuted">
+                            <div>CORE_MEMORY: <span class="text-termText">64% RECOVERED</span></div>
+                            <div>CORRUPTED_SECTORS: <span class="text-termRed font-bold">142 SECTORS</span></div>
+                            <div>ANOMALOUS_CONNECTIONS: <span class="text-termAmber font-bold">1 ACTIVE SESSION</span></div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Fallback default
+            contentEl.innerHTML = `<div class="text-termMuted italic p-4">File content unavailable or raw data format.</div>`;
         }
 
-        // Auto load jika ada Hash di URL
-        window.onload = () => {
-            const initialHash = window.location.hash.replace('#', '');
-            if (initialHash && archiveData[initialHash]) {
-                openFile(initialHash);
+        /* Sub-render function specifically for RK-000 Prolog Recovery State */
+        function renderRK000Content(containerEl, actionsEl) {
+            if (!isRecoveredRK000) {
+                // Pre-recovery metadata state
+                containerEl.innerHTML = `
+                    <div class="border border-termAmber/40 bg-termBg p-4 rounded space-y-4 font-mono">
+                        <div class="bg-termPanel p-3 border border-termBorder rounded text-xs space-y-1.5">
+                            <div class="text-termAmber font-bold border-b border-termBorder pb-1 mb-2 flex justify-between">
+                                <span>ARSIP DIGITAL RK-000</span>
+                                <span class="text-termRed">[UNRECOVERED]</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <div>NAMA BERKAS : <span class="text-termMuted">TIDAK DIKETAHUI</span></div>
+                                <div>STATUS : <span class="text-termMuted">TIDAK TERCATAT</span></div>
+                                <div>SUMBER : <span class="text-termMuted">TIDAK DITEMUKAN</span></div>
+                                <div>UKURAN ASLI : <span class="text-termMuted">0 BYTE</span></div>
+                                <div>PEMULIHAN : <span class="text-termRed">TIDAK TERDEFINISI</span></div>
+                            </div>
+                        </div>
+
+                        <div id="recovery-box" class="p-4 border border-dashed border-termBorder rounded text-center space-y-3 bg-termPanel/50">
+                            <i class="fa-solid fa-file-shield text-3xl text-termMuted"></i>
+                            <p class="text-xs text-termMuted">
+                                Teks dalam berkas ini terenkripsi atau mengalami kerusakan sektor. Tekan tombol di bawah untuk memulai rekonstruksi berkas.
+                            </p>
+                            <button id="btn-recover" onclick="runRecoveryProcess()" class="px-4 py-2 bg-termGreen/20 text-termGreen border border-termGreen hover:bg-termGreen/30 rounded font-bold text-xs tracking-wider transition">
+                                [ ATTEMPT RECOVERY ]
+                            </button>
+                        </div>
+                    </div>
+                `;
             } else {
-                updateQRCode('');
+                // Post-recovery story text state
+                containerEl.innerHTML = `
+                    <div class="border border-termGreen/40 bg-termBg p-4 rounded space-y-4 font-mono">
+                        <div class="bg-termPanel p-3 border border-termBorder rounded text-xs space-y-1.5">
+                            <div class="text-termGreen font-bold border-b border-termBorder pb-1 mb-2 flex justify-between">
+                                <span>ARSIP DIGITAL RK-000</span>
+                                <span class="text-termGreen">[RECOVERED]</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <div>NAMA BERKAS : <span class="text-termText">prolog_ratap_kromium.txt</span></div>
+                                <div>STATUS : <span class="text-termGreen">RECONSTRUCTED</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Revealed Prologue Narrative -->
+                        <div class="space-y-3 text-termText text-xs sm:text-sm leading-relaxed border-l-2 border-termAmber pl-3 py-1">
+                            <p class="font-bold text-termAmber">
+                                [PROLOG: BERKAS TANPA NAMA]
+                            </p>
+                            <p>
+                                Tidak ada catatan resmi mengenai kapan lempengan kromium pertama mulai mengeluarkan bunyi desis. Di dalam koridor arsip yang lembab, suhu udara merosot tajam tanpa ada pendingin yang menyala.
+                            </p>
+                            <p>
+                                Ketika berkas ini pertama kali dibuka di terminal pusat, tidak ada nama penulis maupun tanggal pembuatan. Hanya ada potongan kalimat yang tersusun secara otomatis setiap kali kursor digerakkan:
+                            </p>
+                            <p class="italic text-termGreen bg-termGreen/10 p-2 rounded border border-termGreen/20">
+                                "Sesuatu yang terkubur di bawah tumpukan dokumen administrasi ini tidak meminta untuk diingat. Ia hanya menuntut untuk tidak dihapus."
+                            </p>
+                        </div>
+                    </div>
+                `;
+
+                actionsEl.innerHTML = `
+                    <button onclick="navigateTo('/archive/rk-001')" class="px-3 py-1 border border-termGreen text-termGreen hover:bg-termGreen/10 rounded text-xs font-bold">
+                        Lanjut ke RK-001 &raquo;
+                    </button>
+                `;
             }
+        }
+
+        /* Recovery Process Animation Trigger */
+        function runRecoveryProcess() {
+            playSound('recover');
+            const box = document.getElementById('recovery-box');
+            box.innerHTML = `
+                <div class="space-y-2 py-2">
+                    <div class="text-termGreen font-bold text-xs animate-pulse">
+                        <i class="fa-solid fa-spinner animate-spin mr-1"></i> RECONSTRUCTING FILE SECTORS...
+                    </div>
+                    <div class="w-full bg-termBg border border-termBorder rounded-full h-2 overflow-hidden">
+                        <div id="progress-bar" class="bg-termGreen h-full w-0 transition-all duration-1000"></div>
+                    </div>
+                    <div id="decode-text" class="text-[11px] font-mono text-termMuted">Decoding sector 0x001...</div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                const bar = document.getElementById('progress-bar');
+                if(bar) bar.style.width = "50%";
+            }, 300);
+
+            setTimeout(() => {
+                const bar = document.getElementById('progress-bar');
+                const decodeText = document.getElementById('decode-text');
+                if(bar) bar.style.width = "100%";
+                if(decodeText) decodeText.innerText = "Restoring text fragments...";
+            }, 1100);
+
+            setTimeout(() => {
+                isRecoveredRK000 = true;
+                renderFileContent('/archive/rk-000');
+            }, 1800);
+        }
+
+        /* ==========================================================================
+           CLI TERMINAL COMMAND HANDLER
+           ========================================================================== */
+        function handleCLICommand(cmd) {
+            if (!cmd) return;
+            playSound('click');
+
+            const parts = cmd.split(' ');
+            const mainCmd = parts[0].toLowerCase();
+            const arg = parts[1] ? parts[1].toLowerCase() : '';
+
+            if (mainCmd === 'help') {
+                alertModal(`
+                    <div class="space-y-1 text-xs">
+                        <div class="text-termAmber font-bold">PERINTAH TERMINAL TERSEDIA:</div>
+                        <div><span class="text-termGreen">ls</span> - Tampilkan isi direktori saat ini</div>
+                        <div><span class="text-termGreen">cd [dir]</span> - Pindah ke direktori (contoh: cd archive)</div>
+                        <div><span class="text-termGreen">cat [file]</span> - Buka berkas (contoh: cat rk-000)</div>
+                        <div><span class="text-termGreen">clear</span> - Reset tampilan</div>
+                    </div>
+                `);
+            } else if (mainCmd === 'ls') {
+                renderDirectoryExplorer(currentPath);
+            } else if (mainCmd === 'cd') {
+                if (!arg || arg === '/') navigateTo('/');
+                else if (arg === '..') {
+                    if (currentPath === '/archive' || currentPath === '/system' || currentPath === '/fragments' || currentPath === '/restricted') {
+                        navigateTo('/');
+                    }
+                } else if (arg === 'archive' || arg === '/archive') navigateTo('/archive');
+                else if (arg === 'system' || arg === '/system') navigateTo('/system');
+                else if (arg === 'fragments' || arg === '/fragments') navigateTo('/fragments');
+                else if (arg === 'restricted' || arg === '/restricted') navigateTo('/restricted');
+                else alertModal(`cd: no such directory: ${arg}`);
+            } else if (mainCmd === 'cat') {
+                if (arg === 'rk-000' || arg === 'rk000') navigateTo('/archive/rk-000');
+                else if (arg === 'rk-001' || arg === 'rk001') navigateTo('/archive/rk-001');
+                else if (arg === 'readme.md' || arg === 'readme') navigateTo('/README.md');
+                else if (arg === 'access-log' || arg === 'access-log.json') navigateTo('/system/access-log');
+                else alertModal(`cat: file not found: ${arg}`);
+            } else {
+                alertModal(`Command not recognized: '${mainCmd}'. Type 'help' for options.`);
+            }
+        }
+
+        /* ==========================================================================
+           MODAL & DEEPLINK UTILITY
+           ========================================================================== */
+        function alertModal(htmlContent) {
+            const contentEl = document.getElementById('doc-content');
+            contentEl.innerHTML = `
+                <div class="border border-termAmber/40 bg-termBg p-4 rounded space-y-3 font-mono">
+                    <div class="text-termAmber font-bold border-b border-termBorder pb-1">TERMINAL OUTPUT</div>
+                    <div>${htmlContent}</div>
+                    <button onclick="navigateTo('${currentPath}')" class="mt-2 px-3 py-1 bg-termBorder text-termText rounded text-xs hover:bg-termBorder/80">
+                        &laquo; Kembali
+                    </button>
+                </div>
+            `;
+        }
+
+        function openModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function updateDeepLink() {
+            const select = document.getElementById('deeplink-select');
+            const target = select.value;
+            const baseUrl = window.location.origin + window.location.pathname;
+            const fullUrl = `${baseUrl}?file=${target}`;
+            
+            document.getElementById('deeplink-url').value = fullUrl;
+
+            // Render SVG Placeholder QR Code for Visual
+            const qrBox = document.getElementById('qr-code-box');
+            qrBox.innerHTML = `
+                <svg class="w-24 h-24 text-black" viewBox="0 0 100 100" fill="currentColor">
+                    <rect x="0" y="0" width="100" height="100" fill="white"/>
+                    <path d="M10 10h30v30H10zM15 15v20h20V15zM20 20h10v10H20zM60 10h30v30H60zM65 15v20h20V15zM70 20h10v10H70zM10 60h30v30H10zM15 65v20h20V65zM20 70h10v10H20zM50 10h5v10h-5zM50 30h10v5h-10zM55 50h15v10h-15zM80 50h10v30h-10zM60 80h20v10h-20z"/>
+                </svg>
+            `;
+        }
+
+        function copyDeepLink() {
+            const copyText = document.getElementById('deeplink-url');
+            copyText.select();
+            document.execCommand('copy');
+            playSound('click');
+
+            const toast = document.getElementById('copy-toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+
+        // Initialize App on Window Load
+        window.onload = function() {
+            initSystem();
         };
     </script>
 </body>
 </html>
+```
