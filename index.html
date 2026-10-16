@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RK-ARCHIVE // SYSTEM ROOT</title>
+    
+    <!-- QRCode.js Library untuk generate Real Scannable QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0a0c10;
+            --panel-bg: #11141a;
+            --text-color: #d1d5db;
+            --text-dim: #6b7280;
+            --accent-green: #00ff66;
+            --accent-green-dim: #008837;
+            --accent-red: #ff3333;
+            --border-color: #272f3d;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .crt-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 99;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .terminal-container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.05);
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1px;
+            background-color: var(--border-color);
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .title {
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        .status-badge {
+            color: var(--accent-red);
+            font-size: 12px;
+        }
+
+        .file-tree {
+            list-style: none;
+            flex-grow: 1;
+        }
+
+        .file-item {
+            margin-bottom: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 2px 4px;
+            user-select: none;
+        }
+
+        .file-item:hover {
+            background-color: rgba(0, 255, 102, 0.1);
+            color: var(--accent-green);
+        }
+
+        .file-icon {
+            margin-right: 8px;
+            color: var(--text-dim);
+        }
+
+        .file-item:hover .file-icon {
+            color: var(--accent-green);
+        }
+
+        .unknown-item {
+            color: var(--accent-red);
+            animation: pulse 2s infinite;
+        }
+
+        .reader-panel {
+            grid-column: span 2;
+            border-top: 1px solid var(--border-color);
+            display: none;
+            background-color: #0d0f14;
+        }
+
+        .metadata {
+            background: #050608;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .meta-key { color: var(--text-dim); }
+        .meta-val { color: var(--accent-green); }
+
+        .content-area {
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            padding: 8px 16px;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--accent-green);
+            color: var(--bg-color);
+        }
+
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        /* Container untuk Real QR Code */
+        #qrcode {
+            padding: 10px;
+            background: #ffffff;
+            border: 2px solid var(--accent-green);
+            display: inline-block;
+        }
+
+        #qrcode img {
+            display: block;
+        }
+
+        .cli-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--accent-green);
+            font-family: var(--font-mono);
+            padding: 5px;
+            margin-top: 10px;
+            outline: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .terminal-container {
+                grid-template-columns: 1fr;
+            }
+            .reader-panel {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-overlay"></div>
+
+    <div class="terminal-container">
+        <!-- Panel Navigasi / Root Directory -->
+        <div class="panel">
+            <div class="header">
+                <span class="title">RK ARCHIVE SYSTEM v0.9b</span>
+                <span class="status-badge">[STATUS: UNSTABLE]</span>
+            </div>
+
+            <div style="margin-bottom: 10px; color: var(--text-dim);">ROOT DIRECTORY /</div>
+            
+            <ul class="file-tree">
+                <li class="file-item" onclick="openFile('rk-000')">
+                    <span class="file-icon">[DIR]</span> archive/rk-000 (Prolog)
+                </li>
+                <li class="file-item" onclick="openFile('rk-001')">
+                    <span class="file-icon">[DIR]</span> archive/rk-001 (Indikator Utama)
+                </li>
+                <li class="file-item" onclick="openFile('access-log')">
+                    <span class="file-icon">[LOG]</span> system/access-log.json
+                </li>
+                <li class="file-item" onclick="openFile('restricted')">
+                    <span class="file-icon">[LOK]</span> restricted/
+                </li>
+                <li class="file-item unknown-item" onclick="openFile('unknown')">
+                    <span class="file-icon">[???]</span> [UNKNOWN_OBJECT]
+                </li>
+            </ul>
+
+            <input type="text" class="cli-input" placeholder="Ketik perintah (help, ls, cat, clear)..." id="cliInput" onkeydown="handleCLI(event)">
+        </div>
+
+        <!-- Panel Info Sistem & Real QR Code Generator -->
+        <div class="panel">
+            <div class="header">
+                <span class="title">SYSTEM MON</span>
+            </div>
+            
+            <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 10px;">
+                SESSION: UNKNOWN_USER<br>
+                SOURCE: UNKNOWN<br>
+                RECOVERY RATE: 23.4%
+            </div>
+
+            <div class="qr-section">
+                <div style="font-size: 10px; color: var(--accent-green); margin-bottom: 8px;">DEEP-LINK QR GENERATOR</div>
+                
+                <!-- Elemen tempat QR Code Asli di-render -->
+                <div id="qrcode"></div>
+                
+                <div style="font-size: 9px; color: var(--text-dim); margin-top: 8px; text-align: center;">
+                    SCAN DENGAN PONSEL UNTUK AKSES LANGSUNG VIA GITHUB PAGES
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Reader Dokumen -->
+        <div class="panel reader-panel" id="readerPanel">
+            <div class="header">
+                <span class="title" id="docTitle">BERKAS</span>
+                <button class="btn" style="padding: 2px 8px; font-size: 10px;" onclick="closeReader()">[X] TUTUP</button>
+            </div>
+
+            <div class="metadata" id="docMeta"></div>
+            <div class="content-area" id="docContent"></div>
+            <div id="actionArea"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data Dokumen
+        const archiveData = {
+            'rk-000': {
+                title: 'RK-000 // BERKAS TANPA NAMA',
+                meta: {
+                    'NAMA BERKAS': 'TIDAK DIKETAHUI',
+                    'STATUS': 'TIDAK TERCATAT',
+                    'SUMBER': 'TIDAK DITEMUKAN',
+                    'UKURAN': '0 BYTE'
+                },
+                content: "BERKAS BERHASIL DIHUBUNGKAN.\nTeks terenkripsi. Diperlukan tindakan pemulihan (recovery) untuk menampilkan konten naskah...",
+                hasAction: true,
+                actionLabel: '[ ATTEMPT RECOVERY ]',
+                recoveredText: "PROLOG: RATAP KROMIUM\n------------------------------------\nLog awal tidak mencatat jam berapa entitas ini masuk.\nLogam itu tidak cair, juga tidak padat. Ia merembas melalui saluran sinyal suara yang mati..."
+            },
+            'rk-001': {
+                title: 'RK-001 // INDIKATOR KINERJA UTAMA',
+                meta: {
+                    'STATUS PEGAWAI': 'AKTIF',
+                    'STATUS IDENTITAS': 'VALID',
+                    'STATUS KEBERADAAN': 'TIDAK TERDETEKSI'
+                },
+                content: "LAPORAN ADMINISTRASI OPERASIONAL:\n\nSubjek masih mencatatkan presensi harian pada pukul 08:00 WIB.\nNamun pemeriksaan fisik pada kubikel menunjukkan ruang kosong sejak 14 hari lalu.\nLaporan terus tergenerasi secara otomatis tanpa pergerakan kursor.",
+                hasAction: false
+            },
+            'access-log': {
+                title: 'SYSTEM // ACCESS LOG',
+                meta: { 'SYSTEM': 'RK-ARCHIVE', 'LOG_TYPE': 'AUDIT_TRAIL' },
+                content: "{\n  \"logs\": [\n    { \"time\": \"03:17:09\", \"event\": \"ARCHIVE_OPENED\", \"source\": \"UNKNOWN\" },\n    { \"time\": \"03:17:10\", \"event\": \"FILE_NOT_FOUND\", \"file\": \"RK-000\" },\n    { \"time\": \"03:17:10\", \"event\": \"FILE_OPENED\", \"file\": \"RK-000\" }\n  ]\n}",
+                hasAction: false
+            },
+            'restricted': {
+                title: 'RESTRICTED // DIRECTORY',
+                meta: { 'SECURITY_LEVEL': 'RED', 'ACCESS': 'DENIED' },
+                content: "AKSES DITOLAK.\n\nAnda tidak memiliki otorisasi untuk membuka direktori ini.\nLog aktivitas Anda telah dicatat.",
+                hasAction: false
+            },
+            'unknown': {
+                title: 'ANOMALY // UNKNOWN OBJECT',
+                meta: { 'CLASSIFICATION': 'NONE', 'ORIGIN': 'OUT_OF_BOUNDS' },
+                content: "OBJEK TIDAK DAPAT DIKLASIFIKASIKAN.\nBerkas ditemukan. Direktori asal tidak ditemukan.",
+                hasAction: false
+            }
+        };
+
+        let qrCodeInstance = null;
+
+        // Inisialisasi Real Scannable QR Code
+        function updateQRCode(targetHash) {
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = ''; // Clear QR lama
+
+            // Menentukan URL Target (Otomatis menyesuaikan dengan domain GitHub Pages tempat file berada)
+            const targetURL = window.location.origin + window.location.pathname + targetHash;
+
+            qrCodeInstance = new QRCode(qrContainer, {
+                text: targetURL,
+                width: 110,
+                height: 110,
+                colorDark : "#0a0c10",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        // Buka Berkas
+        function openFile(key) {
+            const doc = archiveData[key];
+            if (!doc) return;
+
+            document.getElementById('readerPanel').style.display = 'block';
+            document.getElementById('docTitle').innerText = doc.title;
+            
+            // Render Meta
+            let metaHTML = '';
+            for (let [k, v] of Object.entries(doc.meta)) {
+                metaHTML += `<div class="meta-row"><span class="meta-key">${k}</span><span class="meta-val">${v}</span></div>`;
+            }
+            document.getElementById('docMeta').innerHTML = metaHTML;
+
+            // Render Content
+            document.getElementById('docContent').innerText = doc.content;
+
+            // Render Action
+            const actionArea = document.getElementById('actionArea');
+            actionArea.innerHTML = '';
+            if (doc.hasAction) {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.innerText = doc.actionLabel;
+                btn.onclick = () => {
+                    document.getElementById('docContent').innerText = doc.recoveredText;
+                    btn.disabled = true;
+                    btn.innerText = '[ RECOVERY COMPLETED ]';
+                };
+                actionArea.appendChild(btn);
+            }
+
+            // Update Hash URL & QR Code
+            const hash = '#' + key;
+            history.pushState(null, null, hash);
+            updateQRCode(hash);
+        }
+
+        function closeReader() {
+            document.getElementById('readerPanel').style.display = 'none';
+            history.pushState(null, null, ' ');
+            updateQRCode('');
+        }
+
+        // Handle CLI Input
+        function handleCLI(e) {
+            if (e.key === 'Enter') {
+                const cmd = e.target.value.trim().toLowerCase();
+                e.target.value = '';
+
+                if (cmd === 'help') {
+                    alert('Perintah tersedia:\n- ls : Lihat daftar berkas\n- cat [nama] : Buka berkas (contoh: cat rk-000)\n- clear : Tutup pembaca');
+                } else if (cmd === 'ls') {
+                    alert('archive/rk-000\narchive/rk-001\nsystem/access-log.json\nrestricted/\n[UNKNOWN_OBJECT]');
+                } else if (cmd.startsWith('cat ')) {
+                    const target = cmd.replace('cat ', '').trim();
+                    if (archiveData[target]) openFile(target);
+                    else alert('Berkas tidak ditemukan: ' + target);
+                } else if (cmd === 'clear') {
+                    closeReader();
+                } else {
+                    alert('Perintah tidak dikenali. Ketik "help" untuk bantuan.');
+                }
+            }
+        }
+
+        // Auto load jika ada Hash di URL
+        window.onload = () => {
+            const initialHash = window.location.hash.replace('#', '');
+            if (initialHash && archiveData[initialHash]) {
+                openFile(initialHash);
+            } else {
+                updateQRCode('');
+            }
+        };
+    </script>
+</body>
+</html>
