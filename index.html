@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="id" class="dark">
 <head>
@@ -13,6 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=VT323&display=swap" rel="stylesheet">
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -214,7 +215,7 @@
 
     </main>
 
-    <!-- Bottom System Status Box (Concept requirement) -->
+    <!-- Bottom System Status Box -->
     <footer class="w-full border-ascii bg-termPanel p-3 rounded font-mono text-xs">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-termMuted">
             <div class="border-b md:border-b-0 md:border-r border-termBorder pb-1 md:pb-0 pr-2">
@@ -262,10 +263,10 @@
                 <div id="copy-toast" class="text-termGreen text-[11px] hidden"><i class="fa-solid fa-check mr-1"></i> Link tersalin ke clipboard!</div>
             </div>
 
-            <!-- Generated QR Code Placeholder -->
+            <!-- Generated QR Code Container -->
             <div class="flex flex-col items-center justify-center p-3 bg-termBg border border-termBorder rounded space-y-2">
-                <div id="qr-code-box" class="p-2 bg-white rounded">
-                    <!-- Rendered via JS -->
+                <div id="qrCanvas" class="p-2 bg-[#0a0c10] border border-termBorder rounded">
+                    <!-- Rendered via QRCode.js -->
                 </div>
                 <span class="text-[10px] text-termMuted font-mono">Pindai untuk membuka langsung di HP</span>
             </div>
@@ -336,7 +337,7 @@
         let audioCtx = null;
 
         /* ==========================================================================
-           AUDIO SYNTHESIZER (No external audio files needed)
+           AUDIO SYNTHESIZER
            ========================================================================== */
         function initAudio() {
             if (!audioCtx) {
@@ -393,7 +394,7 @@
                 document.getElementById('sys-clock').innerText = now.toTimeString().split(' ')[0];
             }, 1000);
 
-            // Handle URL Query Params for Direct Links (e.g., ?file=/archive/rk-000)
+            // Handle URL Query Params for Direct Links
             const urlParams = new URLSearchParams(window.location.search);
             const targetFile = urlParams.get('file');
 
@@ -418,7 +419,7 @@
                 crtStatus.innerText = document.body.classList.contains('scanlines') ? 'ON' : 'OFF';
             });
 
-            // Generate initial Deeplink
+            // Generate initial Deeplink & QR Code
             updateDeepLink();
         }
 
@@ -463,7 +464,7 @@
                 if (item.type === 'file') {
                     iconClass = `${item.icon || 'fa-file'} text-termBlue`;
                 } else if (item.type === 'anomaly') {
-                    iconClass = `${item.icon} ${item.color}`;
+                    iconClass = `${item.icon}${item.color}`;
                     textClass = `${item.color} font-bold glitch-text`;
                 } else if (item.type === 'parent') {
                     iconClass = "fa-arrow-up text-termMuted";
@@ -942,18 +943,23 @@
             const select = document.getElementById('deeplink-select');
             const target = select.value;
             const baseUrl = window.location.origin + window.location.pathname;
-            const fullUrl = `${baseUrl}?file=${target}`;
+            const targetURL = `${baseUrl}?file=${target}`;
             
-            document.getElementById('deeplink-url').value = fullUrl;
+            document.getElementById('deeplink-url').value = targetURL;
 
-            // Render SVG Placeholder QR Code for Visual
-            const qrBox = document.getElementById('qr-code-box');
-            qrBox.innerHTML = `
-                <svg class="w-24 h-24 text-black" viewBox="0 0 100 100" fill="currentColor">
-                    <rect x="0" y="0" width="100" height="100" fill="white"/>
-                    <path d="M10 10h30v30H10zM15 15v20h20V15zM20 20h10v10H20zM60 10h30v30H60zM65 15v20h20V15zM70 20h10v10H70zM10 60h30v30H10zM15 65v20h20V65zM20 70h10v10H20zM50 10h5v10h-5zM50 30h10v5h-10zM55 50h15v10h-15zM80 50h10v30h-10zM60 80h20v10h-20z"/>
-                </svg>
-            `;
+            // Generate real scanable QR Code via QRCode.js
+            const qrContainer = document.getElementById('qrCanvas');
+            if (qrContainer) {
+                qrContainer.innerHTML = ""; // Clear existing canvas/image
+                new QRCode(qrContainer, {
+                    text: targetURL,
+                    width: 120,
+                    height: 120,
+                    colorDark: "#39c5bb",
+                    colorLight: "#090b0d",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
         }
 
         function copyDeepLink() {
@@ -974,4 +980,3 @@
     </script>
 </body>
 </html>
-```
